@@ -75,17 +75,18 @@
   </main>
 
   <script>
-    // Безопасное получение данных
-    const safeBackdrops = <%- JSON.stringify(backdropUrlList || []) %>;
-    const safeMainBackdrop = <%- JSON.stringify(movieData.backdrop?.url || '') %>;
-    const duration = <%= movieData.isSeries ? movieData.seriesLength : movieData.movieLength %>;
-    
-    console.log('Debug data:', { safeBackdrops, safeMainBackdrop });
-    
-    // Установка глобальных переменных только если есть данные
-    window.__backdropUrls = Array.isArray(safeBackdrops) ? safeBackdrops : [];
-    window.__mainBackdrop = typeof safeMainBackdrop === 'string' ? safeMainBackdrop : '';
-    window.__movieDuration = duration;
+    // Инициализация данных через JSON
+    const movieState = {
+      backdrops: JSON.parse('<%- JSON.stringify(backdropUrlList || []) %>'),
+      mainBackdrop: JSON.parse('<%- JSON.stringify(movieData.backdrop?.url || "") %>'),
+      duration: '<%- movieData.isSeries ? movieData.seriesLength : movieData.movieLength %>'
+    };
+
+
+    // Установка глобальных переменных
+    window.__backdropUrls = Array.isArray(movieState.backdrops) ? movieState.backdrops : [];
+    window.__mainBackdrop = typeof movieState.mainBackdrop === 'string' ? movieState.mainBackdrop : '';
+    window.__movieDuration = movieState.duration;
   </script>
   <script src="/assets/scripts/movie-info-view.js"></script>
 </body>

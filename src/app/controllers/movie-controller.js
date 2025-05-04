@@ -62,24 +62,12 @@ class MovieController {
 
       this.movieData = await searchMovie(name);
       if (!this.movieData) {
-        res.status(404).json({
-          status: "error",
-          message: "Фильм не найден",
-        });
-        return;
+        throw new Error("Фильм не найден");
       }
 
-      this.backdropUrlList = [];
-      try {
-        this.backdropUrlList = await getBackdropsImg(this.movieData.id);
-        console.log('Loaded backdrops:', this.backdropUrlList); // Отладка
-      } catch (error) {
-        console.error('Error loading backdrops:', error);
-        this.backdropUrlList = [];
-      }
-
+      // Запускаем оба браузера параллельно
       await Promise.all([
-        openMovieInfoInBrowser(this.movieData, this.backdropUrlList),
+        openMovieInfoInBrowser(this.movieData),
         openMovieInBrowser(this.movieData.id),
       ]);
 
@@ -91,10 +79,14 @@ class MovieController {
       });
     } catch (error) {
       const errorMessage =
-        error instanceof Error ? error.message : "Неизвестная ошибка";
+        error instanceof Error
+          ? error.message
+          : "Неизвестная ошибка при запуске фильма";
+
       res.status(400).json({
         status: "error",
         message: errorMessage,
+        details: error instanceof Error ? error.stack : undefined,
       });
     }
   }
