@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>
+    <%= movieData.name %>
+  </title>
+  <link rel="stylesheet" href="/assets/styles/movie-info-view.css" />
+</head>
+
+<body>
+  <div class="background" role="presentation" data-backdrops="<%- JSON.stringify(backdropUrlList) %>"
+    data-main-backdrop="<%- JSON.stringify(movieData.backdrop?.url || '') %>"></div>
+  <div class="overlay" role="presentation"></div>
+
+  <main class="content">
+    <header class="movie-header">
+      <% if (movieData.logo && movieData.logo.url) { %>
+        <img class="movie-logo" src="<%= movieData.logo.url %>" alt="<%= movieData.name %>" />
+        <% } else { %>
+          <h1 class="movie-title">
+            <%= movieData.name %>
+          </h1>
+          <% } %>
+    </header>
+
+    <section class="movie-meta">
+      <div class="rating">
+        <span
+          class="value <%= parseFloat(movieData.rating.kp) >= 7 ? 'high' : parseFloat(movieData.rating.kp) <= 5 ? 'low' : '' %>">
+          <%= movieData.rating.kp.toFixed(1) %>
+        </span>
+      </div>
+
+      <div class="year">
+        <% if (movieData.isSeries) { %>
+          <%= movieData.releaseYears[0].start %> -
+            <%= movieData.releaseYears[0].end===null ? 'н.в.' : movieData.releaseYears[0].end %>
+              <% } else { %>
+                <%= movieData.year %>
+                  <% } %>
+      </div>
+
+      <div class="genre">
+        <%= movieData.genres[0].name %>
+      </div>
+
+      <div class="country">
+        <%= movieData.countries[0].name %>
+      </div>
+
+      <div class="duration">
+        <% if (movieData.isSeries) { %>
+          <%= movieData.seriesLength %> мин/серия
+            <% } else { %>
+              <% const hours=Math.floor(movieData.movieLength / 60) %>
+                <% const minutes=movieData.movieLength % 60 %>
+                  <%= hours ? `${hours} ч` : '' %>
+                    <%= minutes ? `${minutes} мин` : '' %>
+                      <% } %>
+      </div>
+
+      <div class="age-rating">
+        <%= movieData.ageRating %>+
+      </div>
+    </section>
+
+    <section class="movie-description">
+      <p>
+        <%= movieData.shortDescription %>
+      </p>
+    </section>
+  </main>
+
+  <script>
+    // Безопасное получение данных
+    const safeBackdrops = <%- JSON.stringify(backdropUrlList || []) %>;
+    const safeMainBackdrop = <%- JSON.stringify(movieData.backdrop?.url || '') %>;
+    const duration = <%= movieData.isSeries ? movieData.seriesLength : movieData.movieLength %>;
+    
+    console.log('Debug data:', { safeBackdrops, safeMainBackdrop });
+    
+    // Установка глобальных переменных только если есть данные
+    window.__backdropUrls = Array.isArray(safeBackdrops) ? safeBackdrops : [];
+    window.__mainBackdrop = typeof safeMainBackdrop === 'string' ? safeMainBackdrop : '';
+    window.__movieDuration = duration;
+  </script>
+  <script src="/assets/scripts/movie-info-view.js"></script>
+</body>
+
+</html>

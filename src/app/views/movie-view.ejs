@@ -1,0 +1,84 @@
+<!--
+  Шаблон страницы просмотра фильма
+  Встраивает плеер Kinobox с настроенными параметрами
+  
+  Параметры:
+  - id: ID фильма на Кинопоиске
+  - players: Список и порядок плееров
+  - menu: Настройки меню выбора озвучки
+-->
+
+<div class="kinobox_player"></div>
+<script src="https://kinobox.tv/kinobox.min.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+</style>
+<script>
+  kbox(".kinobox_player", {
+    search: {
+      // Настройки поиска
+      kinopoisk: "<%= id %>", // Поиск фильма по ID Кинопоиска
+    },
+    menu: {
+      // Настройки меню
+      enable: true, // Показывать меню
+      default: "menu_list", // Вид меню для стандартных устройств
+      format: "{N} :: {T} ({Q})", // Формат пункта меню
+      limit: 15, // Максимальное количество элементов в меню
+      open: false, // Открывать меню по умолчанию
+    },
+
+    players: {
+      // Настройки источников
+      Alloha: {
+        enable: true,
+        position: 1,
+      },
+      Kodik: {
+        enable: true,
+        position: 2,
+      },
+      Videocdn: {
+        enable: true,
+        position: 3,
+      },
+      Ashdi: {
+        enable: true,
+        position: 4,
+      },
+      Cdnmovies: {
+        enable: true,
+        position: 5,
+      },
+      Collaps: {
+        enable: true,
+        position: 6,
+      },
+      Hdvb: {
+        enable: true,
+        position: 7,
+      },
+      Turbo: {
+        enable: true,
+        position: 8,
+      },
+      Vibix: {
+        enable: true,
+        position: 9,
+      },
+      Voidboost: {
+        enable: true,
+        position: 10,
+      },
+    },
+
+    // Добавление дополнительных параметров в ссылку iframe
+    params: {
+      alloha: {
+        autoplay: 0, // Автовоспроизведение
+      },
+    },
+  });
+</script>
