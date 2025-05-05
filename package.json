@@ -1,16 +1,19 @@
 {
   "name": "watch-film",
   "version": "1.0.0",
+  "description": "Movie watching app",
   "main": "src/app.js",
+  "private": true,
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
     "ejs": "^3.1.9",
+    "express": "^4.18.2",
+    "fs-extra": "^11.2.0",
     "node-cache": "^5.1.2",
-    "puppeteer-core": "^21.5.0"
+    "puppeteer": "^21.5.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

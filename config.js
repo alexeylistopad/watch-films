@@ -17,7 +17,13 @@
  *
  * debug:
  *   useMockData - флаг для использования тестовых данных
+ *
+ * paths:
+ *   extensions - пути к расширениям
+ *   chromeProfile - путь к профилю Chrome
  */
+
+const path = require("path");
 
 module.exports = {
   server: {
@@ -37,5 +43,21 @@ module.exports = {
   },
   debug: {
     useMockData: true, // включаем моковые данные по умолчанию
+  },
+  paths: {
+    extensions: [
+      path.join(
+        process.env.LOCALAPPDATA,
+        "Google/Chrome/User Data/Default/Extensions/gighmmpiobklfepjocnamgkkbiglidom"
+      ), // AdBlock
+      path.join(
+        process.env.LOCALAPPDATA,
+        "Google/Chrome/User Data/Default/Extensions/bgnkhhnnamicmpeenaelnjfhikgbkllg"
+      ), // AdGuard
+    ],
+    chromeProfile: path.join(
+      process.env.LOCALAPPDATA,
+      "Google/Chrome/User Data"
+    ),
   },
 };

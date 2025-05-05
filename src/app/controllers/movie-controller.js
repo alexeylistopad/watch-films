@@ -3,9 +3,8 @@ const {
   getBackdropsImg,
 } = require("../services/kinopoisk-service");
 const {
-  openMovieInBrowser,
-  openMovieInfoInBrowser,
-  closeAllBrowsers,
+  openMovie,
+  closeMovie,
   browsers,
 } = require("../services/puppeteer-service");
 
@@ -31,7 +30,7 @@ class MovieController {
           await this.handleSearchMovie(name, res);
           break;
 
-        case "closeAllBrowsers":
+        case "closeMovie":
           await this.handleCloseAllBrowsers(res);
           break;
 
@@ -67,8 +66,8 @@ class MovieController {
 
       // Запускаем оба браузера параллельно
       await Promise.all([
-        openMovieInfoInBrowser(this.movieData),
-        openMovieInBrowser(this.movieData.id),
+        // openMovieInfoInBrowser(this.movieData),
+        openMovie(this.movieData.id),
       ]);
 
       res.json({
@@ -100,7 +99,7 @@ class MovieController {
       return;
     }
 
-    await closeAllBrowsers();
+    await closeMovie();
     res.json({
       status: "success",
       message: `https://www.kinopoisk.ru/${

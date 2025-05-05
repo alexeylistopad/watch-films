@@ -1,75 +1,123 @@
-const puppeteer = require("puppeteer-core");
+const puppeteer = require("puppeteer");
+const path = require("path");
+const fs = require("fs");
 const { monitors, server, paths } = require("../../../config");
-const { findInstalledChrome } = require("../../utils/chrome-finder");
 
 let mainBrowser = null;
 let infoBrowser = null;
+let cachedExtensionPaths = null;
+
+function getLatestExtensionPath(basePath) {
+  try {
+    const versions = fs.readdirSync(basePath);
+    const latest = versions.length
+      ? path.join(basePath, versions[versions.length - 1])
+      : null;
+    return latest && fs.existsSync(path.join(latest, "manifest.json"))
+      ? latest
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+// Инициализируем расширения
+cachedExtensionPaths = (paths.extensions || [])
+  .map(getLatestExtensionPath)
+  .filter(Boolean);
 
 async function launchBrowser(url, isMainScreen) {
+  let browser;
   try {
-    const chromePath = await findInstalledChrome();
+    const baseArgs = [
+      `--window-position=${
+        isMainScreen ? monitors.positions.main : monitors.positions.secondary
+      },0`,
+      "--kiosk",
+    ];
 
-    const browser = await puppeteer.launch({
+    if (cachedExtensionPaths && cachedExtensionPaths.length) {
+      baseArgs.push(
+        `--disable-extensions-except=${cachedExtensionPaths.join(",")}`
+      );
+    }
+
+    baseArgs.push("--new-window");
+
+    browser = await puppeteer.launch({
       headless: false,
-      executablePath: chromePath,
       defaultViewport: null,
+      channel: "chrome",
       ignoreDefaultArgs: ["--enable-automation"],
-      args: [
-        `--kiosk`,
-        `--window-position=${
-          isMainScreen ? monitors.positions.main : monitors.positions.secondary
-        },0`,
-      ],
+      args: baseArgs,
     });
 
-    // Используем первую страницу вместо создания новой
-    const page = (await browser.pages())[0];
-    await page.setDefaultNavigationTimeout(30000);
+    // Закрываем все вкладки кроме первой,так как блокеры рекламы срут своими приветствиями
+    const pages = await browser.pages();
+    const [firstPage, ...otherPages] = pages;
+    await Promise.all(otherPages.map((p) => p.close()));
+    let page = firstPage;
 
-    console.log("Переход по URL:", url);
-    await page.goto(url, { waitUntil: "networkidle0" });
+    // Автоматически закрываем новые вкладки
+    browser.on("targetcreated", async (target) => {
+      if (target.type() === "page") {
+        const newPage = await target.page();
+        if (newPage !== page) {
+          await newPage.close();
+        }
+      }
+    });
+
+    if (url) {
+      try {
+        await page.goto(url, {
+          waitUntil: "networkidle0",
+        });
+      } catch (error) {
+        console.error("Ошибка при загрузке страницы:", error);
+        // Если первая попытка не удалась, пробуем еще раз
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+        });
+      }
+    }
 
     return { browser, page };
   } catch (error) {
-    console.error("Ошибка запуска браузера:", error);
-    if (error.message.includes("Failed to launch")) {
-      throw new Error(`Не удалось запустить Chrome. Проверьте: 
-        1. Установлен ли Chrome в системе
-        2. Права на запуск Chrome
-        Исходная ошибка: ${error.message}`);
+    console.error("Детали ошибки:", error);
+    if (browser) {
+      try {
+        await browser.close();
+      } catch {}
     }
     throw error;
   }
 }
 
-const openMovieInBrowser = async (movieId) => {
-  if (mainBrowser) {
-    await mainBrowser.close();
+const openMovie = async (movieId) => {
+  await closeMovie();
+
+  const [mainResult, infoResult] = await Promise.all(
+    [
+      launchBrowser(`${server.baseUrl}/watch?id=${movieId}`, true),
+      monitors.count > 1
+        ? launchBrowser(`${server.baseUrl}/info`, false)
+        : null,
+    ].filter(Boolean)
+  );
+
+  mainBrowser = mainResult.browser;
+  if (infoResult) {
+    infoBrowser = infoResult.browser;
   }
 
-  const url = `${server.baseUrl}/watch?id=${movieId}`;
-  const result = await launchBrowser(url, true);
-  mainBrowser = result.browser;
-  return result.page;
+  return {
+    mainPage: mainResult.page,
+    infoPage: infoResult?.page || null,
+  };
 };
 
-const openMovieInfoInBrowser = async (movieData) => {
-  // Не открываем инфо если используется один монитор
-  if (monitors.count === 1) {
-    return null;
-  }
-
-  if (infoBrowser) {
-    await infoBrowser.close();
-  }
-
-  const url = `${server.baseUrl}/info`;
-  const result = await launchBrowser(url, false);
-  infoBrowser = result.browser;
-  return result.page;
-};
-
-const closeAllBrowsers = async () => {
+const closeMovie = async () => {
   const browsers = [
     mainBrowser && mainBrowser.close(),
     infoBrowser && infoBrowser.close(),
@@ -84,7 +132,6 @@ const closeAllBrowsers = async () => {
 };
 
 module.exports = {
-  openMovieInBrowser,
-  openMovieInfoInBrowser,
-  closeAllBrowsers,
+  openMovie,
+  closeMovie,
 };
