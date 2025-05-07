@@ -11,9 +11,9 @@
 </head>
 
 <body>
-  <div class="background" role="presentation" data-backdrops="<%- JSON.stringify(backdropUrlList) %>"
+  <div class="background" data-backdrops="<%- JSON.stringify(backdropUrlList) %>"
     data-main-backdrop="<%- JSON.stringify(movieData.backdrop?.url || '') %>"></div>
-  <div class="overlay" role="presentation"></div>
+  <div class="overlay"></div>
 
   <main class="content">
     <header class="movie-header">
@@ -75,15 +75,12 @@
   </main>
 
   <script>
-    // Инициализация данных через JSON
     const movieState = {
       backdrops: JSON.parse('<%- JSON.stringify(backdropUrlList || []) %>'),
       mainBackdrop: JSON.parse('<%- JSON.stringify(movieData.backdrop?.url || "") %>'),
       duration: '<%- movieData.isSeries ? movieData.seriesLength : movieData.movieLength %>'
     };
 
-
-    // Установка глобальных переменных
     window.__backdropUrls = Array.isArray(movieState.backdrops) ? movieState.backdrops : [];
     window.__mainBackdrop = typeof movieState.mainBackdrop === 'string' ? movieState.mainBackdrop : '';
     window.__movieDuration = movieState.duration;

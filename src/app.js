@@ -7,6 +7,8 @@ const express = require("express");
 const path = require("path");
 const config = require("../config");
 const router = require("./app/router");
+const http = require("http");
+const websocketService = require("./app/services/websocket-service");
 
 const app = express();
 
@@ -35,10 +37,13 @@ app.use(router);
 const PORT = config.server.port || 3060;
 const HOST = config.server.host || "localhost";
 
+const server = http.createServer(app);
+websocketService.init(server);
+
 // Запуск сервера
-app.listen(PORT, HOST, () => {
+server.listen(PORT, HOST, () => {
   console.log(`Сервер запущен на http://${HOST}:${PORT}`);
-  console.log("Для проверки откройте: http://localhost:3060/ping");
+  console.log(`API ключ: ${config.server.apiKey}`);
 });
 
 // Глобальный обработчик ошибок

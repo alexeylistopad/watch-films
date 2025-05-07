@@ -3,135 +3,123 @@ const path = require("path");
 const fs = require("fs");
 const { monitors, server, paths } = require("../../../config");
 
-let mainBrowser = null;
-let infoBrowser = null;
-let cachedExtensionPaths = null;
+class PuppeteerService {
+  #mainBrowser;
+  #infoBrowser;
+  #extensions;
 
-function getLatestExtensionPath(basePath) {
-  try {
-    const versions = fs.readdirSync(basePath);
-    const latest = versions.length
-      ? path.join(basePath, versions[versions.length - 1])
-      : null;
-    return latest && fs.existsSync(path.join(latest, "manifest.json"))
-      ? latest
-      : null;
-  } catch {
-    return null;
+  constructor() {
+    this.#mainBrowser = null;
+    this.#infoBrowser = null;
+    this.#extensions = this.#initExtensions();
   }
-}
 
-// Инициализируем расширения
-cachedExtensionPaths = (paths.extensions || [])
-  .map(getLatestExtensionPath)
-  .filter(Boolean);
+  #initExtensions() {
+    return (paths.extensions || [])
+      .map(this.#getLatestExtensionPath)
+      .filter(Boolean);
+  }
 
-async function launchBrowser(url, isMainScreen) {
-  let browser;
-  try {
-    const baseArgs = [
-      `--window-position=${
-        isMainScreen ? monitors.positions.main : monitors.positions.secondary
-      },0`,
-      "--kiosk",
-    ];
-
-    if (cachedExtensionPaths && cachedExtensionPaths.length) {
-      baseArgs.push(
-        `--disable-extensions-except=${cachedExtensionPaths.join(",")}`
-      );
+  #getLatestExtensionPath(basePath) {
+    try {
+      const versions = fs.readdirSync(basePath);
+      const latest = versions.length
+        ? path.join(basePath, versions[versions.length - 1])
+        : null;
+      return latest && fs.existsSync(path.join(latest, "manifest.json"))
+        ? latest
+        : null;
+    } catch {
+      return null;
     }
+  }
 
-    baseArgs.push("--new-window");
+  async #launchBrowser(url, isMainScreen) {
+    let browser;
+    try {
+      const baseArgs = [
+        `--window-position=${
+          isMainScreen ? monitors.positions.main : monitors.positions.secondary
+        },0`,
+        "--kiosk",
+      ];
 
-    browser = await puppeteer.launch({
-      headless: false,
-      defaultViewport: null,
-      channel: "chrome",
-      ignoreDefaultArgs: ["--enable-automation"],
-      args: baseArgs,
-    });
+      if (this.#extensions?.length) {
+        baseArgs.push(
+          `--disable-extensions-except=${this.#extensions.join(",")}`
+        );
+      }
 
-    // Закрываем все вкладки кроме первой,так как блокеры рекламы срут своими приветствиями
-    const pages = await browser.pages();
-    const [firstPage, ...otherPages] = pages;
-    await Promise.all(otherPages.map((p) => p.close()));
-    let page = firstPage;
+      baseArgs.push("--new-window");
 
-    // Автоматически закрываем новые вкладки
-    browser.on("targetcreated", async (target) => {
-      if (target.type() === "page") {
-        const newPage = await target.page();
-        if (newPage !== page) {
-          await newPage.close();
+      browser = await puppeteer.launch({
+        headless: false,
+        defaultViewport: null,
+        channel: "chrome",
+        ignoreDefaultArgs: ["--enable-automation"],
+        args: baseArgs,
+      });
+
+      const pages = await browser.pages();
+      const [firstPage, ...otherPages] = pages;
+      await Promise.all(otherPages.map((p) => p.close()));
+      const page = firstPage;
+
+      browser.on("targetcreated", async (target) => {
+        if (target.type() === "page") {
+          const newPage = await target.page();
+          if (newPage !== page) await newPage.close();
         }
-      }
-    });
+      });
 
-    if (url) {
-      try {
-        await page.goto(url, {
-          waitUntil: "networkidle0",
-        });
-      } catch (error) {
-        console.error("Ошибка при загрузке страницы:", error);
-        // Если первая попытка не удалась, пробуем еще раз
-        await page.goto(url, {
-          waitUntil: "domcontentloaded",
-        });
+      if (url) {
+        await page
+          .goto(url, { waitUntil: "networkidle0" })
+          .catch(() => page.goto(url, { waitUntil: "domcontentloaded" }));
       }
+
+      return { browser, page };
+    } catch (error) {
+      console.error("Ошибка запуска браузера:", error);
+      if (browser) await browser.close().catch(() => {});
+      throw error;
+    }
+  }
+
+  async openMovie(movieId) {
+    await this.closeMovie();
+
+    const [mainResult, infoResult] = await Promise.all(
+      [
+        this.#launchBrowser(`${server.baseUrl}/watch?id=${movieId}`, true),
+        monitors.count > 1
+          ? this.#launchBrowser(`${server.baseUrl}/info`, false)
+          : null,
+      ].filter(Boolean)
+    );
+
+    this.#mainBrowser = mainResult.browser;
+    this.#infoBrowser = infoResult?.browser || null;
+
+    return {
+      mainPage: mainResult.page,
+      infoPage: infoResult?.page || null,
+    };
+  }
+
+  async closeMovie() {
+    const browsers = [
+      this.#mainBrowser?.close(),
+      this.#infoBrowser?.close(),
+    ].filter(Boolean);
+
+    if (browsers.length) {
+      await Promise.all(browsers);
     }
 
-    return { browser, page };
-  } catch (error) {
-    console.error("Детали ошибки:", error);
-    if (browser) {
-      try {
-        await browser.close();
-      } catch {}
-    }
-    throw error;
+    this.#mainBrowser = null;
+    this.#infoBrowser = null;
   }
 }
 
-const openMovie = async (movieId) => {
-  await closeMovie();
-
-  const [mainResult, infoResult] = await Promise.all(
-    [
-      launchBrowser(`${server.baseUrl}/watch?id=${movieId}`, true),
-      monitors.count > 1
-        ? launchBrowser(`${server.baseUrl}/info`, false)
-        : null,
-    ].filter(Boolean)
-  );
-
-  mainBrowser = mainResult.browser;
-  if (infoResult) {
-    infoBrowser = infoResult.browser;
-  }
-
-  return {
-    mainPage: mainResult.page,
-    infoPage: infoResult?.page || null,
-  };
-};
-
-const closeMovie = async () => {
-  const browsers = [
-    mainBrowser && mainBrowser.close(),
-    infoBrowser && infoBrowser.close(),
-  ].filter(Boolean);
-
-  if (browsers.length) {
-    await Promise.all(browsers);
-  }
-
-  mainBrowser = null;
-  infoBrowser = null;
-};
-
-module.exports = {
-  openMovie,
-  closeMovie,
-};
+module.exports = new PuppeteerService();

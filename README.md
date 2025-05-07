@@ -1,6 +1,36 @@
 # Watch Films
 
-Веб-приложение для удобного просмотра фильмов на двух мониторах. Использует Kinopoisk API для получения информации и Kinobox для воспроизведения.
+Приложение для просмотра фильмов с мониторингом системных ресурсов.
+
+## Установка
+
+```bash
+npm install
+```
+
+## Установка OpenHardwareMonitor
+
+OpenHardwareMonitor устанавливается автоматически во время `npm install`. Если вам нужно переустановить его вручную, выполните:
+
+```bash
+node src/setup/setup-ohm.js
+```
+
+## Запуск
+
+```bash
+npm start
+```
+
+## Зависимости
+
+- OpenHardwareMonitor - для мониторинга температуры CPU и использования памяти (устанавливается автоматически)
+- Node.js v14+
+- .NET Framework 4.5+ (требуется для работы OpenHardwareMonitor)
+
+## Примечания
+
+Если автоматическая установка OpenHardwareMonitor не работает, вы можете скачать его вручную с [официального сайта](https://openhardwaremonitor.org/downloads/) и распаковать в папку `node_modules/open-hardware-monitor/`.
 
 ## Особенности
 
@@ -18,51 +48,93 @@
 - Node.js 14.x или выше
 - Расширения для блокировки рекламы (опционально)
 
-## Установка
+## Установка и запуск
 
-1. Клонируйте репозиторий:
-
-```bash
-git clone [url-репозитория]
-cd watch-films
-```
-
-2. Установите зависимости:
+1. Установите зависимости:
 
 ```bash
 npm install
 ```
 
-3. Настройте config.js:
+2. Запустите сервер:
+
+```bash
+npm start
+```
+
+3. Скопируйте API ключ из консоли:
+
+```
+Сервер запущен на http://localhost:3060
+API ключ: f8d7e9a3c2b1... (ваш ключ будет здесь)
+```
+
+4. Используйте один из способов для просмотра фильма:
+
+### Через HTTP запросы
+
+```bash
+# Поиск и запуск фильма
+curl -X POST http://localhost:3060/command \
+  -H "X-API-KEY: ваш-ключ-из-консоли" \
+  -H "Content-Type: application/json" \
+  -d '{"command":"searchMovie","name":"Матрица"}'
+
+# Закрыть текущий фильм
+curl -X POST http://localhost:3060/command \
+  -H "X-API-KEY: ваш-ключ-из-консоли" \
+  -H "Content-Type: application/json" \
+  -d '{"command":"closeMovie"}'
+```
+
+### Через веб-интерфейс
+
+1. Откройте http://localhost:3060 в браузере
+2. Введите название фильма в поиск
+3. Нажмите "Смотреть"
+
+## Настройка
+
+### Мониторы
+
+По умолчанию приложение настроено на два монитора:
+
+- Основной (фильм): справа
+- Второй (информация): слева
+
+Для изменения расположения отредактируйте в config.js:
 
 ```javascript
-{
-  server: {
-    port: 3060,
-    host: "0.0.0.0",
-    baseUrl: "http://localhost:3060"
-  },
-  kinopoisk: {
-    apiKey: "ВАШ_КЛЮЧ" // Получить на https://kinopoisk.dev
-  },
-  monitors: {
-    count: 2,          // Количество мониторов
-    positions: {
-      main: 0,         // Позиция основного монитора
-      secondary: -1920 // Позиция второго монитора
-    }
-  },
-  debug: {
-    useMockData: false // Использование тестовых данных
-  },
-  paths: {
-    extensions: [     // Пути к расширениям Chrome
-      "путь/к/adblock",
-      "путь/к/adguard"
-    ]
+monitors: {
+  count: 2,          // Количество мониторов (1 или 2)
+  positions: {
+    main: 0,         // Позиция основного (0 = справа)
+    secondary: -1920 // Позиция второго (-1920 = слева)
   }
 }
 ```
+
+### Kinopoisk API
+
+1. Получите ключ на https://kinopoisk.dev
+2. Добавьте его в config.js:
+
+```javascript
+kinopoisk: {
+  apiKey: "ВАШ_КЛЮЧ";
+}
+```
+
+## Установка OpenHardwareMonitor
+
+Для корректного мониторинга температуры CPU, необходимо:
+
+1. Скачать [OpenHardwareMonitor](https://openhardwaremonitor.org/downloads/)
+2. Распаковать скачанный архив
+3. Скопировать файлы из распакованного архива в папку `e:\watch-films\src\lib\OpenHardwareMonitor`
+4. Убедиться, что файл `OpenHardwareMonitor.exe` находится в этой папке
+
+При запуске сервера, программа автоматически использует OpenHardwareMonitor для мониторинга температуры.
 
 ## API Endpoints
 
@@ -99,6 +171,30 @@ npm install
   ```json
   { "command": "isMovieOpened" }
   ```
+
+## Авторизация
+
+Все защищенные эндпоинты требуют API ключ в заголовке запроса:
+
+```bash
+X-API-KEY: your-secret-api-key-here
+```
+
+Ключ настраивается в config.js в параметре server.apiKey.
+
+### Примеры запросов с авторизацией
+
+```bash
+# Запуск фильма
+curl -X POST http://localhost:3060/command \
+  -H "X-API-KEY: your-secret-api-key-here" \
+  -H "Content-Type: application/json" \
+  -d '{"command":"searchMovie","name":"Матрица"}'
+
+# Получение информации
+curl http://localhost:3060/info \
+  -H "X-API-KEY: your-secret-api-key-here"
+```
 
 ## Структура проекта
 

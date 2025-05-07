@@ -1,13 +1,3 @@
-<!--
-  Шаблон страницы просмотра фильма
-  Встраивает плеер Kinobox с настроенными параметрами
-  
-  Параметры:
-  - id: ID фильма на Кинопоиске
-  - players: Список и порядок плееров
-  - menu: Настройки меню выбора озвучки
--->
-
 <div class="kinobox_player"></div>
 <script src="https://kinobox.tv/kinobox.min.js"></script>
 <style>
@@ -18,20 +8,16 @@
 <script>
   kbox(".kinobox_player", {
     search: {
-      // Настройки поиска
-      kinopoisk: "<%= id %>", // Поиск фильма по ID Кинопоиска
+      kinopoisk: "<%= id %>",
     },
     menu: {
-      // Настройки меню
-      enable: true, // Показывать меню
-      default: "menu_list", // Вид меню для стандартных устройств
-      format: "{N} :: {T} ({Q})", // Формат пункта меню
-      limit: 15, // Максимальное количество элементов в меню
-      open: false, // Открывать меню по умолчанию
+      enable: true,
+      default: "menu_list",
+      format: "{N} :: {T} ({Q})",
+      limit: 15,
+      open: false,
     },
-
     players: {
-      // Настройки источников
       Alloha: {
         enable: true,
         position: 1,

@@ -1,4 +1,11 @@
+# Игнорируем node_modules
 node_modules/
+
+# Но не игнорируем open-hardware-monitor внутри node_modules
+!node_modules/open-hardware-monitor/
+!node_modules/open-hardware-monitor/**
+
 dist/
 .env
 *.log
+.apikey

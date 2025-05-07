@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мониторинг системы</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/assets/styles/home.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- Поиск фильмов -->
+        <div class="search-container">
+            <form id="searchForm" class="search-form">
+                <input type="text" id="movieSearch" placeholder="Введите название фильма..." class="search-input">
+                <button type="submit" class="search-button">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+
+        <!-- Основной контент -->
+        <div class="content-grid">
+            <!-- Графики -->
+            <section class="charts-section">
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="header-title">
+                            <h3 class="chart-title">Процессор</h3>
+                            <span class="chart-subtitle">Температура CPU</span>
+                        </div>
+                        <div class="metric-value low" data-value="cpu-temp">-°C</div>
+                    </div>
+                    <canvas id="cpuChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <div class="header-title">
+                            <h3 class="chart-title">Память</h3>
+                            <span class="chart-subtitle">Использование RAM</span>
+                        </div>
+                        <div class="metric-value low" data-value="ram-detail">- / - GB</div>
+                    </div>
+                    <canvas id="ramChart"></canvas>
+                </div>
+            </section>
+
+            <!-- Информация о системе -->
+            <section class="system-info-section">
+                <div class="grid-card system-info">
+                    <div class="card-header">
+                        <h2>Система</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">Платформа</span>
+                            <span class="value" data-key="platform">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Версия ОС</span>
+                            <span class="value" data-key="osRelease">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Процессор</span>
+                            <span class="value" data-key="cpuModel">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Ядра CPU</span>
+                            <span class="value" data-key="cpuCores">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Время работы</span>
+                            <span class="value" data-key="uptime">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Информация о приложении -->
+                <div class="grid-card app-info">
+                    <div class="card-header">
+                        <h2>Приложение</h2>
+                    </div>
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="label">Node.js</span>
+                            <span class="value" data-key="nodeVersion">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Аптайм</span>
+                            <span class="value" data-key="processUptime">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Порт</span>
+                            <span class="value" data-key="port">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Мониторы</span>
+                            <span class="value" data-key="monitors">-</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="label">Отладка</span>
+                            <span class="value" data-key="debug">-</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+    <script>
+        window.apiKey = localStorage.getItem('apiKey') || '<%= apiKey %>';
+
+        if (!window.apiKey) {
+            const apiKey = prompt('Введите API ключ для доступа к функциям:');
+            if (apiKey) {
+                localStorage.setItem('apiKey', apiKey);
+                window.apiKey = apiKey;
+            }
+        }
+    </script>
+    <script src="/assets/scripts/home.js"></script>
+</body>
+
+</html>
