@@ -20,7 +20,7 @@ class HardwareMonitorService {
       "open-hardware-monitor",
       "close_ohm.vbs"
     );
-    
+
     // Путь к скрипту установки, если потребуется переустановка
     this.setupScript = path.join(projectRoot, "src", "setup", "setup-ohm.js");
 
@@ -37,6 +37,11 @@ class HardwareMonitorService {
     this.lastMemLogTime = 0;
     this.lastTempLogTime = 0;
     this.logThreshold = 10000;
+
+    // Переменные для управления переподключениями клиентов
+    this.reconnectAttempts = {};
+    this.maxReconnectAttempts = 5;
+    this.reconnectTimeouts = {};
   }
 
   logWithThrottle(message, type = "memory") {
@@ -55,10 +60,15 @@ class HardwareMonitorService {
   }
 
   async registerConnection() {
+    // Предотвращаем избыточное логирование при повторных соединениях
+    const prevConnections = this.activeConnections;
     this.activeConnections++;
-    console.log(`Подключение: активных ${this.activeConnections}`);
-    if (this.activeConnections === 1 && !this.isMonitorRunning) {
-      await this.init();
+
+    if (prevConnections === 0) {
+      console.log(`Подключение: активных ${this.activeConnections}`);
+      if (!this.isMonitorRunning) {
+        await this.init();
+      }
     }
   }
 
@@ -66,9 +76,9 @@ class HardwareMonitorService {
     if (this.activeConnections > 0) {
       this.activeConnections--;
     }
-    console.log(`Отключение: активных ${this.activeConnections}`);
 
     if (this.activeConnections === 0) {
+      console.log(`Отключение: активных ${this.activeConnections}`);
       console.log("Нет активных подключений, останавливаем мониторинг");
       if (this.updateInterval) {
         clearInterval(this.updateInterval);
@@ -422,13 +432,6 @@ class HardwareMonitorService {
                 }
 
                 if (totalGB > 0 && (usedGB > 0 || freeGB > 0)) {
-                  this.logWithThrottle(
-                    `Память: ${totalGB.toFixed(
-                      2
-                    )}GB, Использовано: ${usedGB.toFixed(2)}GB`,
-                    "memory"
-                  );
-
                   resolve({
                     total: totalGB,
                     free: freeGB,
@@ -481,21 +484,87 @@ class HardwareMonitorService {
     }
     this.wsServer = new WebSocket.Server({ server });
 
-    this.wsServer.on("connection", (ws) => {
+    this.wsServer.on("connection", (ws, req) => {
+      const clientId =
+        req.headers["sec-websocket-key"] || Date.now().toString();
+      ws.clientId = clientId;
+
       this.wsClients.add(ws);
       this.registerConnection();
       this.startSendingDataToClient(ws);
 
+      console.log(
+        `WebSocket клиент подключен (ID: ${clientId}), активных подключений: ${this.wsClients.size}`
+      );
+
       ws.on("close", () => {
         this.wsClients.delete(ws);
+        console.log(
+          `WebSocket клиент отключен (ID: ${clientId}), осталось подключений: ${this.wsClients.size}`
+        );
+
+        // Удаляем таймеры и данные для этого клиента
+        if (this.reconnectTimeouts[clientId]) {
+          clearTimeout(this.reconnectTimeouts[clientId]);
+          delete this.reconnectTimeouts[clientId];
+        }
+
+        if (this.reconnectAttempts[clientId]) {
+          delete this.reconnectAttempts[clientId];
+        }
+
+        if (ws._dataInterval) {
+          clearInterval(ws._dataInterval);
+          ws._dataInterval = null;
+        }
+
         if (this.wsClients.size === 0) {
           this.unregisterConnection();
+        }
+      });
+
+      // Добавляем обработчик сообщений от клиента
+      ws.on("message", (message) => {
+        try {
+          const data = JSON.parse(message);
+
+          // Обработка различных типов сообщений от клиента
+          if (data.type === "ping") {
+            ws.send(JSON.stringify({ type: "pong", timestamp: Date.now() }));
+          } else if (data.type === "requestData") {
+            this.sendCurrentData(ws);
+          }
+        } catch (error) {
+          console.error(
+            `Ошибка обработки сообщения от клиента: ${error.message}`
+          );
         }
       });
     });
 
     console.log("WebSocket сервер запущен");
     return this.wsServer;
+  }
+
+  async sendCurrentData(ws) {
+    const WebSocket = require("ws");
+    if (ws.readyState !== WebSocket.OPEN) return;
+
+    try {
+      const cpuTemp = await this.getCpuTemp();
+      const memInfo = await this.getMemoryInfo();
+
+      ws.send(
+        JSON.stringify({
+          type: "systemData",
+          timestamp: Date.now(),
+          cpuTemp,
+          memInfo,
+        })
+      );
+    } catch (error) {
+      console.error(`Ошибка отправки текущих данных: ${error.message}`);
+    }
   }
 
   startSendingDataToClient(ws) {
@@ -509,8 +578,11 @@ class HardwareMonitorService {
       try {
         const cpuTemp = await this.getCpuTemp();
         const memInfo = await this.getMemoryInfo();
+
         ws.send(
           JSON.stringify({
+            type: "systemData",
+            timestamp: Date.now(),
             cpuTemp,
             memInfo,
           })
@@ -523,47 +595,89 @@ class HardwareMonitorService {
     ws._dataInterval = interval;
   }
 
-  closeWebSocketServer() {
-    console.log("Закрытие WebSocket сервера");
+  // Метод для проверки активных подключений и их поддержания
+  checkConnections() {
     const WebSocket = require("ws");
 
-    try {
-      if (this.wsServer) {
-        for (const client of this.wsClients) {
-          if (client._dataInterval) {
-            clearInterval(client._dataInterval);
-            client._dataInterval = null;
-          }
-          try {
-            client.terminate();
-          } catch (e) {}
+    this.wsClients.forEach((client) => {
+      if (
+        client.readyState === WebSocket.CLOSED ||
+        client.readyState === WebSocket.CLOSING
+      ) {
+        // Удаляем отключенных клиентов из набора
+        this.wsClients.delete(client);
+
+        if (client._dataInterval) {
+          clearInterval(client._dataInterval);
+          client._dataInterval = null;
         }
-
-        this.wsClients.clear();
-
-        try {
-          this.wsServer.close();
-        } catch (e) {}
-        this.wsServer = null;
       }
-    } catch (e) {}
+    });
 
-    this.activeConnections = 0;
-    this.isMonitorRunning = false;
-    this.initialized = false;
+    // Проверяем, нужно ли останавливать мониторинг
+    if (this.wsClients.size === 0 && this.activeConnections > 0) {
+      this.unregisterConnection();
+    }
+  }
+
+  // Метод для отправки данных всем подключенным клиентам
+  broadcastData(data) {
+    const WebSocket = require("ws");
+
+    this.wsClients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(
+          JSON.stringify({
+            type: "systemBroadcast",
+            timestamp: Date.now(),
+            ...data,
+          })
+        );
+      }
+    });
+  }
+
+  // Запуск периодической проверки подключений
+  startConnectionMonitoring() {
+    if (this._connectionCheckInterval) {
+      clearInterval(this._connectionCheckInterval);
+    }
+
+    this._connectionCheckInterval = setInterval(() => {
+      this.checkConnections();
+    }, 30000); // Проверка каждые 30 секунд
+  }
+
+  // Остановка проверки подключений
+  stopConnectionMonitoring() {
+    if (this._connectionCheckInterval) {
+      clearInterval(this._connectionCheckInterval);
+      this._connectionCheckInterval = null;
+    }
   }
 
   handleHomeOpen() {
-    console.log("Страница Home открыта");
-    return this.registerConnection();
+    // Не запускаем мониторинг здесь, так как это делается через WebSocket
+    console.log("Страница Home открыта (через HTTP)");
+    return Promise.resolve();
   }
 
   handleHomeClose() {
     console.log("Страница Home закрыта");
+
+    // Проверяем, есть ли активные WebSocket клиенты перед закрытием
+    if (this.wsClients && this.wsClients.size > 0) {
+      console.log(
+        `Не закрываем мониторинг: активных WebSocket клиентов: ${this.wsClients.size}`
+      );
+      return Promise.resolve();
+    }
+
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
+
     this.closeWebSocketServer();
     this.clearTempFiles();
 
@@ -640,6 +754,45 @@ class HardwareMonitorService {
     this.initialized = false;
     this.isMonitorRunning = false;
     console.log("Сервис мониторинга остановлен");
+  }
+
+  closeWebSocketServer() {
+    console.log("Закрытие WebSocket сервера");
+    const WebSocket = require("ws");
+
+    try {
+      this.stopConnectionMonitoring();
+
+      if (this.wsServer) {
+        for (const client of this.wsClients) {
+          if (client._dataInterval) {
+            clearInterval(client._dataInterval);
+            client._dataInterval = null;
+          }
+          try {
+            client.terminate();
+          } catch (e) {}
+        }
+
+        this.wsClients.clear();
+
+        // Очищаем все таймеры переподключений
+        Object.keys(this.reconnectTimeouts).forEach((id) => {
+          clearTimeout(this.reconnectTimeouts[id]);
+        });
+        this.reconnectTimeouts = {};
+        this.reconnectAttempts = {};
+
+        try {
+          this.wsServer.close();
+        } catch (e) {}
+        this.wsServer = null;
+      }
+    } catch (e) {}
+
+    this.activeConnections = 0;
+    this.isMonitorRunning = false;
+    this.initialized = false;
   }
 }
 

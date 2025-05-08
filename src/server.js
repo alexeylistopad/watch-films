@@ -33,33 +33,11 @@ const getSystemInfo = () => {
       uptime: formatUptime(os.uptime()),
     },
     process: {
-      nodeVersion: process.version,
       uptime: formatUptime(process.uptime()),
       memoryUsage: formatMemory(process.memoryUsage().heapUsed),
     },
   };
 };
-
-app.get("/ping", (req, res) => {
-  res.render("ping-view", {
-    timestamp: new Date()
-      .toLocaleString("ru-RU", {
-        year: "2-digit",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-      })
-      .replace(",", ""),
-    system: getSystemInfo(),
-    config: {
-      port: config.server.port,
-      monitors: config.monitors.count,
-      debug: config.debug.useMockData,
-    },
-  });
-});
 
 app.listen(config.server.port, config.server.host, () => {
   console.log(`Сервер запущен на http://localhost:${config.server.port}`);

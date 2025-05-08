@@ -40,12 +40,13 @@ app.use(
   session({
     secret: "your-secret-key",
     resave: false,
-    saveUninitialized: true,
+    saveUninitialized: false, // Изменено с true на false для предотвращения создания пустых сессий
   })
 );
 
-// Инициализация WebSocket сервера
+// Инициализация WebSocket сервера и начало мониторинга соединений
 hardwareMonitorService.initWebSocketServer(server);
+hardwareMonitorService.startConnectionMonitoring();
 
 // Добавление обработчика закрытия приложения
 process.on("SIGINT", () => {
@@ -56,6 +57,9 @@ process.on("SIGINT", () => {
 
   // Закрываем OpenHardwareMonitor
   hardwareMonitorService.closeProgramWithElevatedRights();
+
+  // Останавливаем мониторинг соединений
+  hardwareMonitorService.stopConnectionMonitoring();
 
   // Завершаем работу после небольшой задержки
   setTimeout(() => {

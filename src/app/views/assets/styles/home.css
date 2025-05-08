@@ -1,704 +1,665 @@
 :root {
-  --color-bg: #121212;
-  --color-card: #1e1e1e;
-  --color-surface: #2a2a2a;
-  --color-primary: #4caf50;
-  --color-success: #4caf50;
-  --color-warning: #ff9800;
-  --color-error: #f44336;
-  --color-text-primary: rgba(255, 255, 255, 0.87);
-  --color-text-secondary: rgba(255, 255, 255, 0.6);
-  --color-border: rgba(255, 255, 255, 0.12);
-
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 16px;
-  --spacing-lg: 24px;
-  --spacing-xl: 32px;
-
-  --radius-small: 4px;
-  --radius-medium: 8px;
-  --radius-large: 16px;
-
-  --card-radius: var(--radius-medium);
-  --card-padding: var(--spacing-md);
-
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  --grid-gap: var(--spacing-md);
-
-  --shadow-elevation-1: 0 2px 4px rgba(0, 0, 0, 0.2);
-  --shadow-elevation-2: 0 4px 8px rgba(0, 0, 0, 0.3);
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
-    Arial, sans-serif;
-  margin: 0;
-  padding: 0;
-  background-color: var(--color-bg);
-  color: var(--color-text-primary);
-  min-height: 100vh;
-  line-height: 1.5;
-}
-
-/* Структура страницы */
-.layout-grid {
-  display: grid;
-  grid-template-columns: 300px 1fr;
-  min-height: 100vh;
-}
-
-.sidebar {
-  background: var(--color-card);
-  border-right: 1px solid var(--color-border);
-  padding: var(--spacing-md);
-}
-
-.sidebar-header {
-  padding: var(--spacing-md);
-  border-bottom: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sidebar-title {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.sidebar-content {
-  padding: var(--spacing-md);
-}
-
-.main-content {
-  padding: var(--spacing-lg);
-}
-
-/* Карточки статуса */
-.status-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: var(--spacing-md);
-  padding: var(--spacing-md) 0;
-}
-
-.status-card {
-  background: var(--color-surface);
-  border-radius: var(--card-radius);
-  padding: var(--card-padding);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-sm);
-}
-
-.metric-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.metric-title {
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--color-text-secondary);
-}
-
-.metric-value {
-  font-family: var(--font-mono);
-  font-size: 1.25rem;
-  font-weight: 600;
-  padding: var(--spacing-xs) var(--spacing-sm);
-  border-radius: var(--radius-small);
-  background: rgba(0, 0, 0, 0.2);
-}
-
-.metric-value.low {
-  color: var(--color-primary);
-}
-.metric-value.medium {
-  color: var(--color-warning);
-}
-.metric-value.high {
-  color: var(--color-error);
-}
-
-/* График */
-.chart-card {
-  position: relative;
-  background: var(--color-surface);
-  border-radius: var(--radius-medium);
-  padding: var(--spacing-md);
-  box-shadow: var(--shadow-elevation-1);
-  height: 140px;
-  transition: transform 0.2s ease;
-  border: 1px solid rgba(255, 255, 255, 0.03);
-  margin-bottom: 16px;
-}
-
-.chart-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-elevation-2);
-}
-
-.chart-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.header-title {
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-title {
-  font-size: 1rem;
-  font-weight: 600;
-  margin: 0;
-}
-
-.chart-subtitle {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  margin-top: 4px;
-  font-family: var(--font-mono);
-}
-
-.metric-trend {
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
-.metric-trend.up {
-  color: var(--color-error);
-}
-.metric-trend.down {
-  color: var(--color-primary);
-}
-
-canvas {
-  width: 100% !important;
-  height: calc(100% - 60px) !important;
-}
-
-/* Адаптивная верстка */
-@media (max-width: 1024px) {
-  .layout-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    max-height: 100vh;
-    overflow-y: auto;
-  }
-
-  .charts-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-@media (max-width: 640px) {
-  .main-content {
-    padding: var(--spacing-sm);
-  }
-
-  .status-cards {
-    padding: var(--spacing-sm);
-  }
-
-  .chart-card {
-    padding: var(--spacing-sm);
-  }
-
-  .metric-value {
-    font-size: 1rem;
-  }
-}
-
-/* Анимации */
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-}
-
-.animated-pulse {
-  animation: pulse 2s infinite;
-}
-
-.masonry-grid {
-  columns: 4 300px;
-  column-gap: var(--grid-gap);
-}
-
-.grid-card {
-  break-inside: avoid;
-  background: var(--color-card);
-  border-radius: var(--card-radius);
-  padding: var(--card-padding);
-  margin-bottom: var(--grid-gap);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s ease;
-}
-
-.grid-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-}
-
-.card-header h2 {
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.info-grid {
-  display: grid;
-  gap: 8px;
-}
-
-.info-item {
-  padding: 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.info-item .label {
-  font-size: 13px;
-  opacity: 0.7;
-}
-
-.info-item .value {
-  font-size: 13px;
-  letter-spacing: 0.02em;
-}
-
-.chart-card {
-  height: 180px;
-}
-
-.chart-container {
-  height: calc(100% - 50px);
-}
-
-.metric-value {
-  padding: 6px 12px;
-}
-
-@media (max-width: 1400px) {
-  .masonry-grid {
-    columns: 3 300px;
-  }
-}
-
-@media (max-width: 1100px) {
-  .masonry-grid {
-    columns: 2 300px;
-  }
-}
-
-@media (max-width: 700px) {
-  .masonry-grid {
-    columns: 1 300px;
-    max-width: 500px;
-    margin: 0 auto;
-  }
-}
-
-.app-container {
-  max-width: 1800px;
-  margin: 0 auto;
-  padding: var(--spacing-md);
-}
-
-.search-container {
-  margin-bottom: var(--spacing-lg);
-}
-
-.search-form {
-  max-width: 600px;
-  margin: 0 auto;
-  display: flex;
-  gap: 8px;
-}
-
-.search-input {
-  flex: 1;
-  padding: 12px 16px;
-  border-radius: var(--radius-medium);
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  font-size: 16px;
-  transition: all 0.2s ease;
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-}
-
-.search-button {
-  padding: 12px;
-  border-radius: var(--radius-medium);
-  border: none;
-  background: var(--color-primary);
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.search-button:hover {
-  background: var(--color-success);
-}
-
-/* CPU ядра */
-.cpu-cores-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 10px;
-  margin-top: 15px;
-  padding: 0 10px 10px;
-}
-
-.cpu-core-item {
-  background-color: #2a2a2a;
-  border-radius: 6px;
-  padding: 8px;
-  text-align: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-}
-
-.core-name {
-  font-size: 12px;
-  color: #b0b0b0;
-  margin-bottom: 5px;
-}
-
-.core-temp {
-  font-size: 16px;
-  font-weight: bold;
-}
-
-.temp-normal {
-  color: #4fc3f7;
-}
-
-.temp-warning {
-  color: #ffb74d;
-}
-
-.temp-critical {
-  color: #ff8a65;
-}
-
-/* Стили для отображения значения температуры */
-.metric-value {
-  font-size: 28px;
-  font-weight: bold;
-  padding: 0 15px;
-}
-
-.notification {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  padding: 12px 24px;
-  background-color: #333;
-  color: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  z-index: 1000;
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.3s, transform 0.3s;
-}
-
-.notification.show {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-.notification.success {
-  background-color: #4caf50;
-}
-
-.notification.error {
-  background-color: #f44336;
-}
-
-.notification.warning {
-  background-color: #ff9800;
-}
-
-:root {
-  --color-bg: #121212;
-  --color-card: #1e1e1e;
-  --color-text: #ffffff;
-  --color-text-secondary: rgba(255, 255, 255, 0.7);
-  --color-accent: #4caf50;
-  --color-accent-secondary: #2196f3;
-  --color-high: #f44336;
-  --color-medium: #ff9800;
-  --color-low: #4caf50;
-  --card-radius: 8px;
-  --transition: all 0.3s ease;
-}
-
+  --color-bg: #000000;
+  --color-surface: #1c1c1e;
+  --color-card: #2c2c2e;
+  --color-card-hover: #3a3a3c;
+  --color-input: #1c1c1e;
+  --color-primary: #007aff; /* Apple Blue - для основного акцента */
+  --color-primary-light: #5ac8fa; /* Apple Light Blue - градиент */
+  --color-success: #34c759; /* Apple Green - успешные действия */
+  --color-warning: #ff9500; /* Apple Orange - предупреждения */
+  --color-error: #ff3b30; /* Apple Red - ошибки */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #98989f;
+  --color-border: rgba(255, 255, 255, 0.1);
+
+  --badge-low: #34c759; /* Apple Green - для нормального состояния */
+  --badge-medium: #ff9500; /* Apple Orange - для предупреждения */
+  --badge-high: #ff3b30; /* Apple Red - для критичного состояния */
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+
+  --font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+    "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "SF Mono", SFMono-Regular, ui-monospace, Menlo, Monaco, Consolas,
+    monospace;
+
+  --transition-fast: 300ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-normal: 400ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --transition-slow: 500ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Базовые стили */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
+html,
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
-    Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
-  background-color: var(--color-bg);
-  color: var(--color-text);
-  line-height: 1.6;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-family);
+  background: var(--color-bg);
+  color: var(--color-text-primary);
   font-size: 16px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  margin: 0;
-  min-height: 100vh;
 }
 
 .app-container {
-  max-width: 1200px;
+  min-height: 100vh;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 0 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Заголовок приложения */
+.app-header {
+  padding: 1.5rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.logo-icon {
+  color: var(--color-primary);
+}
+
+.logo-text {
+  font-size: 1.5rem;
+  font-weight: 700;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary) 0%,
+    var(--color-primary-light) 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Поиск фильмов */
 .search-container {
-  margin-bottom: 2rem;
+  flex: 1;
+  max-width: 600px;
+  margin-left: auto;
 }
 
 .search-form {
   display: flex;
-  max-width: 600px;
-  margin: 0 auto;
-  background-color: var(--color-card);
-  border-radius: var(--card-radius);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 0.5rem;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 0.25rem;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.search-form:focus-within {
+  transform: scale(1.01);
+  box-shadow: 0 0 0 2px var(--color-primary);
 }
 
 .search-input {
-  flex-grow: 1;
-  padding: 0.8rem 1rem;
-  background-color: transparent;
+  flex: 1;
   border: none;
+  background: transparent;
+  padding: 0.75rem 1rem;
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+  font-size: 0.9375rem;
+  font-weight: 500;
   outline: none;
-  color: var(--color-text);
-  font-size: 1rem;
+}
+
+.search-input::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 0.8;
 }
 
 .search-button {
-  background-color: var(--color-accent);
-  border: none;
-  color: white;
-  padding: 0 1.2rem;
-  cursor: pointer;
-  transition: var(--transition);
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: var(--color-primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .search-button:hover {
-  background-color: #3d8b40;
+  background: #0071e3;
+  transform: translateY(-1px);
+}
+
+.search-button:active {
+  transform: translateY(1px);
+}
+
+.button-text {
+  display: none;
+}
+
+@media (min-width: 520px) {
+  .button-text {
+    display: inline;
+  }
 }
 
 /* Основной контент */
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
+.content-section {
+  flex: 1;
+  margin-bottom: 2rem;
 }
 
-@media (min-width: 768px) {
-  .content-grid {
+.section-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  color: var(--color-text-primary);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 992px) {
+  .dashboard-grid {
     grid-template-columns: 2fr 1fr;
   }
 }
 
-/* Графики */
-.charts-section {
+/* Секция мониторинга */
+.monitoring-section {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.75rem;
+}
+
+.charts-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
 }
 
 .chart-card {
-  background-color: var(--color-card);
-  border-radius: var(--card-radius);
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
   padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  height: 250px;
+  transition: transform var(--transition-normal),
+    box-shadow var(--transition-normal);
+  border: none;
+  height: 270px;
+  overflow: hidden;
   position: relative;
+}
+
+.chart-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--radius-xl);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  pointer-events: none;
+}
+
+.chart-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-lg);
 }
 
 .chart-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-}
-
-.chart-title {
-  margin: 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-}
-
-.chart-subtitle {
-  display: block;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-  margin-top: 0.3rem;
-}
-
-.cpu-cores-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 0.5rem;
-  margin-top: 1rem;
-}
-
-.core-item {
-  background-color: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
-  padding: 0.5rem;
-  font-size: 0.8rem;
-  text-align: center;
-}
-
-.core-label {
-  display: block;
-  color: var(--color-text-secondary);
-  margin-bottom: 0.2rem;
-}
-
-/* Информация о системе */
-.system-info-section {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
-
-.grid-card {
-  background-color: var(--color-card);
-  border-radius: var(--card-radius);
-  padding: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.card-header {
+  align-items: center; /* Изменено с flex-start для выравнивания по центру */
   margin-bottom: 1.5rem;
 }
 
-.card-header h2 {
-  font-size: 1.2rem;
-  font-weight: 500;
-  margin: 0;
+.chart-info {
+  display: flex;
+  flex-direction: row; /* Изменено с column для отображения в одну строку */
+  align-items: center;
+  gap: 0.75rem; /* Увеличиваем разрыв между заголовком и описанием */
+  flex-wrap: nowrap;
+  overflow: hidden;
+  width: 100%; /* Расширяем пространство для заголовка */
 }
 
-.info-grid {
-  display: grid;
-  gap: 1rem;
+.chart-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.01em;
+  white-space: nowrap; /* Предотвращаем перенос текста */
+}
+
+.chart-description {
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  letter-spacing: -0.01em;
+  white-space: nowrap; /* Предотвращаем перенос текста */
+}
+
+.metric-badge {
+  display: inline-block;
+  padding: 0.4375rem 0.875rem;
+  border-radius: 2rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: var(--badge-low);
+  color: white;
+  transition: background-color var(--transition-fast),
+    transform var(--transition-fast);
+  letter-spacing: -0.01em;
+  flex-shrink: 0; /* Предотвращаем сжатие бейджа */
+}
+
+.metric-badge.low {
+  background: var(--badge-low);
+}
+
+.metric-badge.medium {
+  background: var(--badge-medium);
+}
+
+.metric-badge.high {
+  background: var(--badge-high);
+}
+
+.chart-container {
+  height: calc(100% - 60px);
+  position: relative;
+}
+
+/* Информация о системе */
+.system-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.info-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+  border: none;
+  transition: transform var(--transition-normal),
+    box-shadow var(--transition-normal);
+  position: relative;
+}
+
+.info-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: var(--radius-xl);
+  box-shadow: inset 0 0 0 1px var(--color-border);
+  pointer-events: none;
+}
+
+.info-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: var(--shadow-lg);
+}
+
+.info-card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.info-card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+.info-card-title svg {
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.info-list {
+  padding: 1.25rem 1.5rem;
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  padding-bottom: 0.5rem;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .info-item:last-child {
   border-bottom: none;
 }
 
-.label {
+.info-label {
   color: var(--color-text-secondary);
+  font-size: 0.9375rem;
+  letter-spacing: -0.01em;
 }
 
-.value {
-  font-family: "Courier New", Courier, monospace;
+.info-value {
+  color: var(--color-text-primary);
+  font-size: 0.9375rem;
   font-weight: 500;
+  letter-spacing: -0.01em;
+  max-width: 65%; /* Ограничиваем ширину значения */
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
-/* Метрики */
-.metric-value {
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
+/* Стили для элементов с подсказками в стиле Apple */
+.info-value.has-tooltip {
+  position: relative;
+  cursor: default;
+  /* Удаляем пунктирную линию, используем более утонченный индикатор */
+  border-bottom: none;
+  position: relative;
+}
+
+.info-value.has-tooltip::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--color-text-secondary);
+  opacity: 0.3;
+  transition: opacity 0.2s ease;
+}
+
+.info-value.has-tooltip:hover::after {
+  opacity: 0.6;
+}
+
+/* Глобальный элемент подсказки в стиле Apple */
+.apple-tooltip {
+  position: fixed;
+  background-color: rgba(56, 56, 56, 0.95);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 500;
-  font-family: "Courier New", Courier, monospace;
+  letter-spacing: -0.01em;
+  pointer-events: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 9999;
+  max-width: 320px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.metric-value.high {
-  color: white;
-  background-color: var(--color-high);
+.apple-tooltip.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
 }
 
-.metric-value.medium {
-  color: white;
-  background-color: var(--color-medium);
+/* Стрелка подсказки */
+.apple-tooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -6px;
+  border-width: 6px;
+  border-style: solid;
+  border-color: rgba(56, 56, 56, 0.95) transparent transparent transparent;
 }
 
-.metric-value.low {
-  color: white;
-  background-color: var(--color-low);
+.info-value.mono {
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
 }
 
 /* Уведомления */
-.notification {
+.notifications-container {
   position: fixed;
-  bottom: -60px;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 1rem 2rem;
-  border-radius: var(--card-radius);
-  background-color: var(--color-card);
-  color: var(--color-text);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  opacity: 0;
-  transition: all 0.3s ease;
+  bottom: 2rem;
+  right: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
   z-index: 1000;
 }
 
+.notification {
+  padding: 1.125rem 1.5rem;
+  border-radius: var(--radius-lg);
+  background: rgba(28, 28, 30, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  transform: translateX(120%);
+  transition: transform var(--transition-normal);
+  max-width: 350px;
+  border: none;
+  letter-spacing: -0.01em;
+}
+
 .notification.show {
-  bottom: 30px;
-  opacity: 1;
+  transform: translateX(0);
 }
 
 .notification.success {
-  background-color: var(--color-low);
+  border-left: 3px solid var(--badge-low);
 }
 
 .notification.error {
-  background-color: var(--color-high);
+  border-left: 3px solid var(--badge-high);
 }
 
 .notification.info {
-  background-color: var(--color-accent-secondary);
+  border-left: 3px solid var(--color-primary);
+}
+
+.notification.warning {
+  border-left: 3px solid var(--badge-medium);
+}
+
+/* Адаптивность */
+@media (max-width: 767px) {
+  .app-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .search-container {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .chart-card {
+    height: 220px;
+    padding: 1.25rem; /* Немного уменьшаем отступы */
+  }
+
+  .chart-header {
+    /* Сохраняем расположение элементов в ряд */
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .chart-info {
+    /* Сохраняем одну строку за счет скрытия лишнего текста */
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 70%; /* Ограничиваем ширину, чтобы badge оставался видимым */
+    overflow: hidden;
+  }
+
+  /* Стили для мобильных заголовков */
+  .chart-title {
+    font-size: 1rem; /* Уменьшаем размер заголовка */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Скрываем описание на мобильных - оставляем этот CSS, так как он может 
+     пригодиться для других описаний, которые не удалены */
+  .chart-description {
+    font-size: 0.75rem;
+    display: none;
+  }
+
+  /* Уменьшаем бейдж для мобильной версии */
+  .metric-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  /* Для первой карточки (CPU) */
+  .charts-wrapper .chart-card:first-of-type .chart-title {
+    position: relative;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 75%; /* Ограничиваем ширину заголовка */
+  }
+
+  .charts-wrapper .chart-card:first-of-type .chart-title::before {
+    content: "Процессор";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .charts-wrapper .chart-card:first-of-type .chart-title {
+    color: transparent;
+  }
+
+  /* Для второй карточки (RAM) */
+  .charts-wrapper .chart-card:nth-of-type(2) .chart-title {
+    position: relative;
+  }
+
+  .charts-wrapper .chart-card:nth-of-type(2) .chart-title::before {
+    content: "ОЗУ";
+    position: absolute;
+    left: 0;
+    top: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+
+  .charts-wrapper .chart-card:nth-of-type(2) .chart-title {
+    color: transparent;
+  }
+}
+
+/* Адаптивный дизайн для планшетов */
+@media (min-width: 768px) and (max-width: 991px) {
+  .metric-badge {
+    padding: 0.375rem 0.75rem; /* Средний размер для планшетов */
+  }
+
+  .chart-info {
+    flex-direction: row; /* Оставляем в строку для планшетов */
+    max-width: 75%; /* Ограничиваем ширину */
+  }
+}
+
+/* Адаптивный дизайн для очень маленьких экранов */
+@media (max-width: 480px) {
+  .chart-card {
+    padding: 1rem; /* Уменьшаем внутренние отступы карточки */
+    height: 200px; /* Уменьшаем высоту карточки */
+  }
+
+  .chart-header {
+    /* Сохраняем горизонтальное расположение даже на маленьких экранах */
+    flex-direction: row;
+    margin-bottom: 1rem;
+  }
+
+  .chart-title {
+    font-size: 0.9375rem; /* Еще меньше для крошечных экранов */
+    max-width: calc(100% - 60px); /* Оставляем место для бейджа */
+  }
+
+  .chart-container {
+    height: calc(100% - 60px); /* Корректируем высоту контейнера графика */
+  }
+}
+
+/* Добавляем стили для экстремально маленьких экранов */
+@media (max-width: 360px) {
+  .chart-card {
+    padding: 0.75rem;
+    height: 180px;
+  }
+
+  .metric-badge {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
+  }
+
+  .chart-title {
+    font-size: 0.875rem;
+  }
 }

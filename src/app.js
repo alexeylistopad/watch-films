@@ -31,6 +31,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Обработка запросов фавиконок для предотвращения 404 ошибок
+app.get("/favicon.ico", (req, res) => res.status(204).end());
+app.get("/apple-touch-icon.png", (req, res) => res.status(204).end());
+app.get("/apple-touch-icon-precomposed.png", (req, res) =>
+  res.status(204).end()
+);
+
 // Подключаем основные маршруты
 app.use(router);
 
