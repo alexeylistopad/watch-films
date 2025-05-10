@@ -158,20 +158,23 @@ class HardwareMonitorService {
       clearInterval(this.updateInterval);
       this.updateInterval = null;
     }
-    if (this.activeConnections === 0) {
-      return;
-    }
+
+    if (this.activeConnections === 0) return;
 
     console.log("Запуск сбора данных");
 
     this.updateInterval = setInterval(async () => {
       try {
+        // Проверка один раз в начале функции
         if (this.activeConnections === 0) {
-          clearInterval(this.updateInterval);
-          this.updateInterval = null;
+          if (this.updateInterval) {
+            clearInterval(this.updateInterval);
+            this.updateInterval = null;
+          }
           return;
         }
 
+        // Далее весь существующий код
         const tempData = await this.getTemperatureWithOHM();
         if (tempData !== null) {
           fs.writeFileSync(this.tempLogPath, tempData);

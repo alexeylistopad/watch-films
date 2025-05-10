@@ -21,6 +21,8 @@ class WebSocketService {
       ws.clientId = req.headers["sec-websocket-key"] || Date.now().toString();
       ws.userAgent = req.headers["user-agent"] || "unknown";
       ws.isMobile = /mobile|android|iphone|ipad|ipod/i.test(ws.userAgent);
+      // Определяем iOS устройства без использования объекта window
+      ws.isIOS = /iPad|iPhone|iPod/i.test(ws.userAgent);
 
       // Регистрируем только новые соединения, если это первый клиент
       const isFirstClient = this.clients.size === 0;
@@ -44,13 +46,24 @@ class WebSocketService {
             ws.clientType = data.clientType || "browser";
             ws.deviceType =
               data.deviceType || (ws.isMobile ? "mobile" : "desktop");
+            ws.isIOS = data.isIOS || ws.isIOS;
 
             console.log(
-              `Клиент подключен: ${ws.clientType} (${ws.deviceType})`
+              `Клиент подключен: ${ws.clientType} (${ws.deviceType})${
+                ws.isIOS ? " [iOS]" : ""
+              }`
             );
 
+            // Для iOS устройств настраиваем специфичные параметры
+            if (ws.isIOS) {
+              console.log(
+                "iOS устройство: настройка специфичных параметров..."
+              );
+              ws.iosOptimized = true;
+              this.adjustDataIntervalForClient(ws, 3000); // Оптимальный интервал для iOS
+            }
             // Для мобильных устройств увеличиваем интервал опроса
-            if (ws.deviceType === "mobile") {
+            else if (ws.deviceType === "mobile") {
               console.log(
                 "Мобильное устройство: установка увеличенного интервала обновления"
               );
@@ -104,8 +117,11 @@ class WebSocketService {
 
   async sendInitialData(ws) {
     try {
+      console.log(`Отправка начальных данных для клиента ${ws.clientId}...`);
       const data = await this.collectData();
       if (ws.readyState === WebSocket.OPEN) {
+        // Отправляем полный набор данных с типом "initialData"
+        data.type = "initialData";
         ws.send(JSON.stringify(data));
       }
     } catch (error) {
@@ -369,7 +385,14 @@ class WebSocketService {
 
     try {
       const data = await this.collectData();
+      data.type = "broadcastData"; // Добавляем тип данных
+
       this.clients.forEach((client) => {
+        // Пропускаем клиентов с включенным оптимизированным режимом
+        if (client.iosOptimized && client._dataInterval) {
+          return;
+        }
+
         if (client.readyState === WebSocket.OPEN) {
           client.send(JSON.stringify(data));
         }
@@ -396,17 +419,58 @@ class WebSocketService {
       }
 
       try {
-        const cpuTemp = await hardwareMonitor.getCpuTemp();
-        const memInfo = await hardwareMonitor.getMemoryInfo();
+        // Для iOS устройств используем комбинированный подход
+        if (ws.isIOS) {
+          // Отправляем частые обновления данных мониторинга
+          const cpuTemp = await hardwareMonitor.getCpuTemp();
+          const memInfo = await hardwareMonitor.getMemoryInfo();
 
-        ws.send(
-          JSON.stringify({
+          const partialData = {
             type: "systemData",
             timestamp: Date.now(),
-            cpuTemp,
-            memInfo,
-          })
-        );
+            cpuTemp: cpuTemp || "N/A",
+            memInfo: memInfo || {
+              total: (os.totalmem() / 1024 / 1024 / 1024).toFixed(2),
+              free: (os.freemem() / 1024 / 1024 / 1024).toFixed(2),
+              used: (
+                (os.totalmem() - os.freemem()) /
+                1024 /
+                1024 /
+                1024
+              ).toFixed(2),
+            },
+          };
+
+          // Отправляем частичные данные для быстрого обновления графиков
+          ws.send(JSON.stringify(partialData));
+
+          // Каждые 5 секунд отправляем также полный набор данных
+          if (!ws._fullDataInterval) {
+            ws._fullDataInterval = setInterval(async () => {
+              if (ws.readyState !== WebSocket.OPEN) {
+                clearInterval(ws._fullDataInterval);
+                ws._fullDataInterval = null;
+                return;
+              }
+
+              try {
+                const fullData = await this.collectData();
+                fullData.type = "fullData";
+                ws.send(JSON.stringify(fullData));
+              } catch (error) {
+                console.error(
+                  "Ошибка отправки полных данных для iOS:",
+                  error.message
+                );
+              }
+            }, 5000); // Каждые 5 секунд
+          }
+        } else {
+          // Для остальных устройств отправляем полный набор данных
+          const data = await this.collectData();
+          data.type = "fullData";
+          ws.send(JSON.stringify(data));
+        }
       } catch (error) {
         console.error("Ошибка отправки данных:", error.message);
       }
@@ -414,6 +478,25 @@ class WebSocketService {
 
     ws._dataInterval = interval;
     return interval;
+  }
+
+  // Добавим метод для отправки текущих данных
+  async sendCurrentData(ws) {
+    try {
+      console.log(
+        `Отправка полных данных по запросу от клиента ${ws.clientId}...`
+      );
+      const data = await this.collectData();
+
+      // Добавляем тип данных, чтобы клиент понимал, что это полные данные
+      data.type = "fullData";
+
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(data));
+      }
+    } catch (error) {
+      console.error("Ошибка отправки текущих данных:", error);
+    }
   }
 }
 

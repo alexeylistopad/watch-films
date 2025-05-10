@@ -3,6 +3,7 @@ const { MovieController } = require("./controllers/movie-controller");
 const authMiddleware = require("./middlewares/auth-middleware");
 const config = require("../../config");
 const hardwareMonitorService = require("./services/hardware-monitor-service");
+const path = require("path");
 
 const router = Router();
 
@@ -50,6 +51,15 @@ router.use((req, res, next) => {
   }
 
   next();
+});
+
+// Обработка манифеста и сервис-воркера PWA
+router.get("/manifest.json", (req, res) => {
+  res.sendFile(path.join(__dirname, "views/assets/pwa/manifest.json"));
+});
+
+router.get("/service-worker.js", (req, res) => {
+  res.sendFile(path.join(__dirname, "views/assets/pwa/service-worker.js"));
 });
 
 router.get("/watch", (req, res) => {

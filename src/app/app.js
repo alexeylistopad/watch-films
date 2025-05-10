@@ -6,7 +6,6 @@ const originalConsoleLog = console.log;
 console.log = function () {
   // В production выводим только ошибки и важные сообщения
   if (MIN_LOG_LEVEL === "error") {
-    // Проверяем, содержит ли сообщение ключевые слова для важных событий
     const message = Array.from(arguments).join(" ").toLowerCase();
     const importantKeywords = [
       "error",
@@ -17,71 +16,45 @@ console.log = function () {
     ];
 
     if (!importantKeywords.some((keyword) => message.includes(keyword))) {
-      return; // Не выводим обычные информационные сообщения
+      return;
     }
   }
-
-  // Для отладки выводим все сообщения
   originalConsoleLog.apply(console, arguments);
 };
 
 // Инициализация Express и HTTP сервера
 const express = require("express");
 const http = require("http");
-const session = require("express-session");
 const app = express();
 const server = http.createServer(app);
 
 // Импорт сервиса мониторинга
 const hardwareMonitorService = require("./services/hardware-monitor-service");
 
-// Настройка сессий для отслеживания навигации пользователя
-app.use(
-  session({
-    secret: "your-secret-key",
-    resave: false,
-    saveUninitialized: false, // Изменено с true на false для предотвращения создания пустых сессий
-  })
-);
-
 // Инициализация WebSocket сервера и начало мониторинга соединений
 hardwareMonitorService.initWebSocketServer(server);
 hardwareMonitorService.startConnectionMonitoring();
 
-// Добавление обработчика закрытия приложения
-process.on("SIGINT", () => {
+// Объединяем обработчики закрытия приложения для уменьшения дублирования кода
+const shutdownApp = (exitCode = 0) => {
   console.log("Завершение работы приложения...");
-
-  // Закрываем WebSocket соединения
   hardwareMonitorService.closeWebSocketServer();
-
-  // Закрываем OpenHardwareMonitor
   hardwareMonitorService.closeProgramWithElevatedRights();
-
-  // Останавливаем мониторинг соединений
   hardwareMonitorService.stopConnectionMonitoring();
 
-  // Завершаем работу после небольшой задержки
   setTimeout(() => {
     console.log("Завершаем работу приложения...");
-    process.exit(0);
+    process.exit(exitCode);
   }, 1000);
-});
+};
 
-// Обработчик для необработанных исключений
+// Добавление обработчиков событий
+process.on("SIGINT", () => shutdownApp(0));
 process.on("uncaughtException", (error) => {
   console.error("Необработанное исключение:", error);
-
-  // Закрываем WebSocket соединения
-  hardwareMonitorService.closeWebSocketServer();
-
-  // Завершаем работу
-  setTimeout(() => process.exit(1), 1000);
+  shutdownApp(1);
 });
-
-process.on("exit", () => {
-  hardwareMonitorService.closeWebSocketServer();
-});
+process.on("exit", () => hardwareMonitorService.closeWebSocketServer());
 
 // Обработчик ошибок и завершения работы сервера
 server.on("close", () => {

@@ -21,6 +21,11 @@
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
 
+  /* iOS уведомления */
+  --ios-notification-bg: rgba(25, 25, 25, 0.9);
+  --ios-notification-border: rgba(60, 60, 60, 0.3);
+  --ios-notification-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+
   --radius-sm: 0.5rem;
   --radius-md: 0.75rem;
   --radius-lg: 1rem;
@@ -499,20 +504,84 @@ body {
   transform: translateX(0);
 }
 
-.notification.success {
-  border-left: 3px solid var(--badge-low);
+/* iOS Нативные уведомления */
+.ios-notification {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-150%);
+  width: 90%;
+  max-width: 400px;
+  background-color: rgba(28, 28, 30, 0.85);
+  border-radius: 14px;
+  box-shadow: var(--ios-notification-shadow);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--ios-notification-border);
+  padding: 12px 15px; /* Обновлено, чтобы согласовать с JS */
+  z-index: 2000;
+  overflow: hidden;
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28),
+    opacity 0.3s ease;
 }
 
-.notification.error {
-  border-left: 3px solid var(--badge-high);
+.ios-notification.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
 }
 
-.notification.info {
-  border-left: 3px solid var(--color-primary);
+.ios-notification-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 4px;
 }
 
-.notification.warning {
-  border-left: 3px solid var(--badge-medium);
+.ios-notification-message {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+/* Анимации для iOS уведомлений */
+@keyframes ios-notification-entrance {
+  0% {
+    transform: translateX(-50%) translateY(-150%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes ios-notification-exit {
+  0% {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) translateY(-150%);
+    opacity: 0;
+  }
+}
+
+/* Кастомная анимация тапа для iOS */
+@keyframes ios-tap-effect {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.97);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.ios-tap-animation {
+  animation: ios-tap-effect 0.2s forwards;
 }
 
 /* Адаптивность */
@@ -661,5 +730,32 @@ body {
 
   .chart-title {
     font-size: 0.875rem;
+  }
+}
+
+/* Убираем анимации при наведении на блоки для iOS устройств */
+@media (hover: none) and (pointer: coarse), (-webkit-touch-callout: none) {
+  .chart-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-md);
+  }
+
+  .info-card:hover {
+    transform: none;
+    box-shadow: var(--shadow-md);
+  }
+
+  .search-button:hover {
+    background: var(--color-primary);
+    transform: none;
+  }
+
+  .info-value.has-tooltip:hover::after {
+    opacity: 0.3; /* Не меняем прозрачность при наведении */
+  }
+
+  /* Отключаем все hover-эффекты */
+  *:hover {
+    transform: none !important;
   }
 }

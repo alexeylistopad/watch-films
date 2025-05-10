@@ -16,13 +16,9 @@ const app = express();
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "app/views"));
 
-// Подключаем статические файлы (стили, скрипты, изображения)
-// Доступны по пути /assets/*
+// Подключаем статические файлы и настраиваем парсеры
 app.use("/assets", express.static(path.join(__dirname, "app/views/assets")));
-
-// Парсинг JSON в теле запроса
 app.use(express.json());
-// Парсинг данных форм
 app.use(express.urlencoded({ extended: true }));
 
 // Логгер всех входящих запросов
@@ -31,11 +27,19 @@ app.use((req, res, next) => {
   next();
 });
 
-// Обработка запросов фавиконок для предотвращения 404 ошибок
-app.get("/favicon.ico", (req, res) => res.status(204).end());
-app.get("/apple-touch-icon.png", (req, res) => res.status(204).end());
-app.get("/apple-touch-icon-precomposed.png", (req, res) =>
-  res.status(204).end()
+// Обработка запросов фавиконок
+app.get("/favicon.ico", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "app/views/assets/images/icons/favicon.ico")
+  );
+});
+app.get(
+  ["/apple-touch-icon.png", "/apple-touch-icon-precomposed.png"],
+  (req, res) => {
+    res.sendFile(
+      path.join(__dirname, "app/views/assets/images/icons/icon-180x180.png")
+    );
+  }
 );
 
 // Подключаем основные маршруты
