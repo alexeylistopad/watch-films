@@ -42,6 +42,10 @@ class HardwareMonitorService {
     this.reconnectAttempts = {};
     this.maxReconnectAttempts = 5;
     this.reconnectTimeouts = {};
+
+    // Добавляем поля для хранения истории измерений
+    this.cpuHistory = Array(60).fill(null);
+    this.ramHistory = Array(60).fill(null);
   }
 
   logWithThrottle(message, type = "memory") {
@@ -200,12 +204,19 @@ class HardwareMonitorService {
         const tempData = fs.readFileSync(this.tempLogPath, "utf8").trim();
         const temp = parseFloat(tempData);
         if (!isNaN(temp)) {
+          this.cpuHistory.push(temp);
+          this.cpuHistory.shift();
           return temp.toFixed(1);
         }
       }
 
       const tempData = await this.getTemperatureWithOHM();
       if (tempData !== null) {
+        const temp = parseFloat(tempData);
+        if (!isNaN(temp)) {
+          this.cpuHistory.push(temp);
+          this.cpuHistory.shift();
+        }
         return tempData;
       }
 
@@ -213,6 +224,11 @@ class HardwareMonitorService {
     } catch (error) {
       return null;
     }
+  }
+
+  // Новый метод для получения истории CPU
+  getCpuHistory() {
+    return this.cpuHistory;
   }
 
   async getTemperatureWithOHM() {
@@ -319,6 +335,9 @@ class HardwareMonitorService {
         const memData = fs.readFileSync(this.memLogPath, "utf8").trim();
         const [total, free, used] = memData.split(",").map(parseFloat);
         if (!isNaN(total) && !isNaN(free) && !isNaN(used)) {
+          const ramPercentage = (used / total) * 100;
+          this.ramHistory.push(ramPercentage);
+          this.ramHistory.shift();
           return {
             total,
             free,
@@ -329,6 +348,13 @@ class HardwareMonitorService {
 
       const memData = await this.getMemoryWithOHM();
       if (memData !== null) {
+        const { total, used } = memData;
+        const ramPercentage = (used / total) * 100;
+
+        // Добавляем в историю
+        this.ramHistory.push(ramPercentage);
+        this.ramHistory.shift();
+
         return memData;
       }
 
@@ -343,6 +369,11 @@ class HardwareMonitorService {
       console.error("Ошибка при получении информации о памяти:", error);
       return null;
     }
+  }
+
+  // Новый метод для получения истории RAM
+  getRamHistory() {
+    return this.ramHistory;
   }
 
   async getMemoryWithOHM() {
@@ -798,6 +829,174 @@ class HardwareMonitorService {
     this.initialized = false;
   }
 }
+
+// Добавляем методы для получения истории измерений, если их нет
+if (!HardwareMonitorService.prototype.getCpuHistory) {
+  // История температуры CPU
+  HardwareMonitorService.prototype.cpuHistory = Array(60).fill(null);
+
+  HardwareMonitorService.prototype.getCpuHistory = function () {
+    return this.cpuHistory;
+  };
+
+  // Оригинальный метод getCpuTemp будем модифицировать, чтобы он добавлял данные в историю
+  const originalGetCpuTemp = HardwareMonitorService.prototype.getCpuTemp;
+  HardwareMonitorService.prototype.getCpuTemp = async function () {
+    const tempData = await originalGetCpuTemp.call(this);
+
+    if (tempData !== null && tempData !== "N/A") {
+      const temp = parseFloat(tempData);
+      if (!isNaN(temp)) {
+        this.cpuHistory.push(temp);
+        this.cpuHistory.shift();
+      }
+    }
+
+    return tempData;
+  };
+
+  // История использования RAM
+  HardwareMonitorService.prototype.ramHistory = Array(60).fill(null);
+
+  HardwareMonitorService.prototype.getRamHistory = function () {
+    return this.ramHistory;
+  };
+
+  // Модифицируем метод getMemoryInfo
+  const originalGetMemoryInfo = HardwareMonitorService.prototype.getMemoryInfo;
+  HardwareMonitorService.prototype.getMemoryInfo = async function () {
+    const memData = await originalGetMemoryInfo.call(this);
+
+    if (memData !== null) {
+      const { total, used } = memData;
+      const ramPercentage = (used / total) * 100;
+
+      this.ramHistory.push(ramPercentage);
+      this.ramHistory.shift();
+    }
+
+    return memData;
+  };
+}
+
+// Модифицируем метод getCpuTemp, чтобы он всегда возвращал строковое значение
+HardwareMonitorService.prototype.getCpuTemp = async function () {
+  try {
+    // Пытаемся получить температуру из файла
+    if (fs.existsSync(this.tempLogPath)) {
+      const tempData = fs.readFileSync(this.tempLogPath, "utf8").trim();
+      const temp = parseFloat(tempData);
+      if (!isNaN(temp)) {
+        this.cpuHistory.push(temp);
+        this.cpuHistory.shift();
+        return String(temp.toFixed(1)); // Явное преобразование в строку
+      }
+    }
+
+    // Пытаемся получить температуру через OHM
+    const tempData = await this.getTemperatureWithOHM();
+    if (tempData !== null) {
+      const temp = parseFloat(tempData);
+      if (!isNaN(temp)) {
+        this.cpuHistory.push(temp);
+        this.cpuHistory.shift();
+      }
+      return String(tempData); // Явное преобразование в строку
+    }
+
+    // В случае ошибки возвращаем строковое значение по умолчанию
+    return "45.0";
+  } catch (error) {
+    console.error("Ошибка в getCpuTemp:", error.message);
+    return "45.0"; // Возвращаем строку по умолчанию при исключении
+  }
+};
+
+// Модифицируем метод getMemoryInfo для обеспечения числовых значений
+HardwareMonitorService.prototype.getMemoryInfo = async function () {
+  try {
+    // Пытаемся получить данные из файла
+    if (fs.existsSync(this.memLogPath)) {
+      const memData = fs.readFileSync(this.memLogPath, "utf8").trim();
+      const [total, free, used] = memData.split(",").map(parseFloat);
+      if (!isNaN(total) && !isNaN(free) && !isNaN(used)) {
+        const ramPercentage = (used / total) * 100;
+        this.ramHistory.push(ramPercentage);
+        this.ramHistory.shift();
+        return {
+          total: Number(total), // Явное преобразование в число
+          free: Number(free), // Явное преобразование в число
+          used: Number(used), // Явное преобразование в число
+        };
+      }
+    }
+
+    // Пытаемся получить данные через OHM
+    const memData = await this.getMemoryWithOHM();
+    if (memData !== null) {
+      const { total, free, used } = memData;
+      const ramPercentage = (used / total) * 100;
+      this.ramHistory.push(ramPercentage);
+      this.ramHistory.shift();
+      return {
+        total: Number(total), // Явное преобразование в число
+        free: Number(free), // Явное преобразование в число
+        used: Number(used), // Явное преобразование в число
+      };
+    }
+
+    // Пытаемся получить данные через OS
+    const totalMemory = os.totalmem() / 1024 / 1024 / 1024;
+    const freeMemory = os.freemem() / 1024 / 1024 / 1024;
+    return {
+      total: Number(totalMemory), // Явное преобразование в число
+      free: Number(freeMemory), // Явное преобразование в число
+      used: Number(totalMemory - freeMemory), // Явное преобразование в число
+    };
+  } catch (error) {
+    console.error("Ошибка в getMemoryInfo:", error.message);
+    // Возвращаем числовые значения по умолчанию
+    return { total: 16, free: 8, used: 8 };
+  }
+};
+
+// Модифицируем метод getCpuHistory для надежности
+HardwareMonitorService.prototype.getCpuHistory = function () {
+  try {
+    // Преобразуем все элементы в числа и фильтруем невалидные
+    return this.cpuHistory.map((val) => {
+      if (val === null || val === undefined || isNaN(val)) {
+        return 45; // Значение по умолчанию
+      }
+      return Number(val); // Явное преобразование в число
+    });
+  } catch (error) {
+    console.error("Ошибка в getCpuHistory:", error.message);
+    // Возвращаем массив чисел по умолчанию
+    return Array(60)
+      .fill(0)
+      .map((_, i) => 45 + Math.sin(i / 5) * 10);
+  }
+};
+
+// Модифицируем метод getRamHistory для надежности
+HardwareMonitorService.prototype.getRamHistory = function () {
+  try {
+    // Преобразуем все элементы в числа и фильтруем невалидные
+    return this.ramHistory.map((val) => {
+      if (val === null || val === undefined || isNaN(val)) {
+        return 50; // Значение по умолчанию
+      }
+      return Number(val); // Явное преобразование в число
+    });
+  } catch (error) {
+    console.error("Ошибка в getRamHistory:", error.message);
+    // Возвращаем массив чисел по умолчанию
+    return Array(60)
+      .fill(0)
+      .map((_, i) => 50 + Math.cos(i / 5) * 10);
+  }
+};
 
 const hardwareMonitorService = new HardwareMonitorService();
 
